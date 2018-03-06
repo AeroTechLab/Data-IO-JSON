@@ -1,0 +1,6 @@
+[submodule "interface"]
+	path = interface
+	url = https://github.com/LabDin/Data-IO-Interface.git
+[submodule "json"]
+	path = json
+	url = https://github.com/LabDin/Simple-JSON.git
