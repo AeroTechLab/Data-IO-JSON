@@ -60,7 +60,11 @@ DataHandle DataIO_LoadStorageData( const char* filePath )
   sprintf( filePathExt, "%s%s.json", baseDirectoryPath, filePath );
   
   FILE* configFile = fopen( filePathExt, "r" );
-  if( configFile == NULL ) return NULL;
+  if( configFile == NULL ) 
+  {
+    fprintf( stderr, "could not open file %s", filePathExt );
+    return NULL;
+  }
   
   fseek( configFile, 0, SEEK_END );
   long int fileSize = ftell( configFile );
