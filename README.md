@@ -22,4 +22,4 @@ With dependencies set, you can now build the library to a separate build directo
 
 For building it manually e.g. with [GCC](https://gcc.gnu.org/) in a system without **CMake** available, the following shell command (from project directory) would be required:
 
-    $ gcc data_io_json.c json/json.c -I/interface -I/json -shared -fPIC -o libdataiojson.{so,dll}
+    $ gcc data_io_json.c json/json.c -Iinterface -Ijson -shared -fPIC -o libdataiojson.{so,dll}
