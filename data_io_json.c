@@ -27,6 +27,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef WIN32
+#include <dirent.h>
+#else
+#include <dirent.h>
+#endif
+
+#define FILE_EXTENSION ".json"
+#define FILE_NAME_MAX_SIZE 16
+#define FILES_MAX_NUMBER 32
+#define FILE_BUFFER_MAX_SIZE ( FILES_MAX_NUMBER * FILE_NAME_MAX_SIZE )
+
 static char baseDirectoryPath[ DATA_IO_MAX_PATH_LENGTH ] = "";
 
 
@@ -57,12 +68,12 @@ DataHandle DataIO_LoadStorageData( const char* filePath )
   if( filePath == NULL ) return NULL;
   
   char filePathExt[ DATA_IO_MAX_PATH_LENGTH ];
-  sprintf( filePathExt, "%s%s.json", baseDirectoryPath, filePath );
+  sprintf( filePathExt, "%s%s" FILE_EXTENSION , baseDirectoryPath, filePath );
   
   FILE* configFile = fopen( filePathExt, "r" );
   if( configFile == NULL ) 
   {
-    fprintf( stderr, "could not open file %s", filePathExt );
+    fprintf( stderr, "could not open file %s\n", filePathExt );
     return NULL;
   }
   
@@ -84,6 +95,64 @@ void DataIO_SetBaseStoragePath( const char* directoryPath )
 {
   strncpy( baseDirectoryPath, ( directoryPath != NULL ) ? directoryPath : "", DATA_IO_MAX_PATH_LENGTH );
   if( strlen( baseDirectoryPath ) > 0 ) strcat( baseDirectoryPath, "/" );
+}
+
+const char** DataIO_ListStorageDataEntries( const char* directoryPath )
+{    
+  static const char* fileNamesList[ FILES_MAX_NUMBER ];
+  static char fileNamesBuffer[ DATA_IO_MAX_PATH_LENGTH ];
+  
+  size_t fileCount = 0;
+  size_t bufferPosition = 0;
+  
+  memset( fileNamesList, 0, FILES_MAX_NUMBER );
+  memset( fileNamesBuffer, 0, FILE_BUFFER_MAX_SIZE );
+  
+  DIR* directory;
+  struct dirent* directoryEntry;
+  directory = opendir( directoryPath );
+  if( directory )
+  {
+    while( (directoryEntry = readdir( directory )) != NULL && fileCount < FILES_MAX_NUMBER )
+    {
+      if( directoryEntry->d_type == DT_REG )
+      {
+        char* extString = strstr( directoryEntry->d_name, FILE_EXTENSION );
+        if( extString != NULL ) 
+        {
+          *extString = '\0';
+          size_t bufferOffset = strlen( directoryEntry->d_name ) + 1;
+          if( bufferPosition + bufferOffset < FILE_BUFFER_MAX_SIZE )
+          {
+            char* nameBuffer = fileNamesBuffer + bufferPosition;
+            strcpy( nameBuffer, directoryEntry->d_name );
+            fileNamesList[ fileCount++ ] = nameBuffer;
+            printf( "written %s to %p\n", nameBuffer, fileNamesList[ fileCount - 1 ] );
+            bufferPosition += strlen( nameBuffer ) + 1;
+          }
+        }
+      }
+    }
+
+    closedir( directory );
+  }
+  
+//   WIN32_FIND_DATA info;
+//   HANDLE h = FindFirstFile( directoryPath, &info );
+//   if (h != INVALID_HANDLE_VALUE)
+//   {
+//     do
+//     {
+//       if (!(strcmp(info.cFileName, ".") == 0 || strcmp(info.cFileName, "..") == 0))
+//       {
+//         addfile(&list, info);
+//       }
+//     } while (FindNextFile(h, &info));
+//     if (GetLastError() != ERROR_NO_MORE_FILES) errormessage();
+//     FindClose(h);
+//   }
+  
+  return (const char**) fileNamesList;
 }
 
 void DataIO_UnloadData( DataHandle data )
