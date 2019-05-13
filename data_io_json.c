@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
-//  Copyright (c) 2016-2018 Leonardo Consoni <consoni_2519@hotmail.com>       //
+//  Copyright (c) 2016-2019 Leonardo Consoni <consoni_2519@hotmail.com>       //
 //                                                                            //
 //  This file is part of Data I/O JSON.                                       //
 //                                                                            //
@@ -28,9 +28,25 @@
 #include <stdlib.h>
 
 #ifdef WIN32
-#include <dirent.h>
+  #include <windows.h>
+  typedef HANDLE Directory;
+  typedef WIN32_FIND_DATA DirectoryEntry;
+  #define INVALID_DIRECTORY INVALID_HANDLE_VALUE
+  #define OPEN_DIRECTORY( path, entry ) FindFirstFile( path, &entry ) 
+  #define GET_NEXT_ENTRY( directory, entry ) FindNextFile( directory, &entry )
+  #define CHECK_IF_FILE( entry ) !(strcmp( entry.cFileName, "." ) == 0 || strcmp( entry.cFileName, ".." ) == 0)
+  #define ENTRY_STRING( entry ) entry.cFileName
+  #define CLOSE_DIRECTORY( directory ) FindClose( directory )
 #else
-#include <dirent.h>
+  #include <dirent.h>
+  typedef DIR* Directory;
+  typedef struct dirent* DirectoryEntry;
+  #define INVALID_DIRECTORY NULL
+  #define OPEN_DIRECTORY( path, entry ) opendir( path )
+  #define GET_NEXT_ENTRY( directory, entry ) ((entry = readdir( directory )) != NULL)
+  #define CHECK_IF_FILE( entry ) (entry->d_type == DT_REG)
+  #define ENTRY_STRING( entry ) entry->d_name
+  #define CLOSE_DIRECTORY( directory ) closedir( directory )
 #endif
 
 #define FILE_EXTENSION ".json"
@@ -108,49 +124,35 @@ const char** DataIO_ListStorageDataEntries( const char* directoryPath )
   memset( fileNamesList, 0, FILES_MAX_NUMBER );
   memset( fileNamesBuffer, 0, FILE_BUFFER_MAX_SIZE );
   
-  DIR* directory;
-  struct dirent* directoryEntry;
-  directory = opendir( directoryPath );
-  if( directory )
+  snprintf( fileNamesBuffer, DATA_IO_MAX_PATH_LENGTH, "%s/*", directoryPath );
+  
+  DirectoryEntry directoryEntry;
+  Directory directory = OPEN_DIRECTORY( fileNamesBuffer, directoryEntry );
+  if( directory != INVALID_DIRECTORY )
   {
-    while( (directoryEntry = readdir( directory )) != NULL && fileCount < FILES_MAX_NUMBER )
+    while( GET_NEXT_ENTRY( directory, directoryEntry ) && fileCount < FILES_MAX_NUMBER )
     {
-      if( directoryEntry->d_type == DT_REG )
+      if( CHECK_IF_FILE( directoryEntry ) )
       {
-        char* extString = strstr( directoryEntry->d_name, FILE_EXTENSION );
+        char* extString = strstr( ENTRY_STRING( directoryEntry ), FILE_EXTENSION );
         if( extString != NULL ) 
         {
           *extString = '\0';
-          size_t bufferOffset = strlen( directoryEntry->d_name ) + 1;
+          size_t bufferOffset = strlen( ENTRY_STRING( directoryEntry ) ) + 1;
           if( bufferPosition + bufferOffset < FILE_BUFFER_MAX_SIZE )
           {
             char* nameBuffer = fileNamesBuffer + bufferPosition;
-            strcpy( nameBuffer, directoryEntry->d_name );
+            strcpy( nameBuffer, ENTRY_STRING( directoryEntry ) );
             fileNamesList[ fileCount++ ] = nameBuffer;
-            printf( "written %s to %p\n", nameBuffer, fileNamesList[ fileCount - 1 ] );
+            fprintf( stderr, "written %s to %p\n", nameBuffer, fileNamesList[ fileCount - 1 ] );
             bufferPosition += strlen( nameBuffer ) + 1;
           }
         }
       }
     }
 
-    closedir( directory );
+    CLOSE_DIRECTORY( directory );
   }
-  
-//   WIN32_FIND_DATA info;
-//   HANDLE h = FindFirstFile( directoryPath, &info );
-//   if (h != INVALID_HANDLE_VALUE)
-//   {
-//     do
-//     {
-//       if (!(strcmp(info.cFileName, ".") == 0 || strcmp(info.cFileName, "..") == 0))
-//       {
-//         addfile(&list, info);
-//       }
-//     } while (FindNextFile(h, &info));
-//     if (GetLastError() != ERROR_NO_MORE_FILES) errormessage();
-//     FindClose(h);
-//   }
   
   return (const char**) fileNamesList;
 }
