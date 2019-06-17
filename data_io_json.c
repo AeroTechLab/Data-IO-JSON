@@ -37,6 +37,7 @@
   #define CHECK_IF_FILE( entry ) !(strcmp( entry.cFileName, "." ) == 0 || strcmp( entry.cFileName, ".." ) == 0)
   #define ENTRY_STRING( entry ) entry.cFileName
   #define CLOSE_DIRECTORY( directory ) FindClose( directory )
+  #define SEARCH_TOKEN "*"
 #else
   #include <dirent.h>
   typedef DIR* Directory;
@@ -47,6 +48,7 @@
   #define CHECK_IF_FILE( entry ) (entry->d_type == DT_REG)
   #define ENTRY_STRING( entry ) entry->d_name
   #define CLOSE_DIRECTORY( directory ) closedir( directory )
+  #define SEARCH_TOKEN ""
 #endif
 
 #define FILE_EXTENSION ".json"
@@ -124,7 +126,7 @@ const char** DataIO_ListStorageDataEntries( const char* directoryPath )
   memset( fileNamesList, 0, FILES_MAX_NUMBER );
   memset( fileNamesBuffer, 0, FILE_BUFFER_MAX_SIZE );
   
-  snprintf( fileNamesBuffer, DATA_IO_MAX_PATH_LENGTH, "%s/*", directoryPath );
+  snprintf( fileNamesBuffer, DATA_IO_MAX_PATH_LENGTH, "%s/" SEARCH_TOKEN, directoryPath );
   
   DirectoryEntry directoryEntry;
   Directory directory = OPEN_DIRECTORY( fileNamesBuffer, directoryEntry );
