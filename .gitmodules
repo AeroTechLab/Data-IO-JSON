@@ -1,6 +1,6 @@
 [submodule "interface"]
 	path = interface
-	url = https://github.com/LabDin/Data-IO-Interface.git
+	url = https://github.com/AeroTechLab/Data-IO-Interface
 [submodule "json"]
 	path = json
-	url = https://github.com/LabDin/Simple-JSON.git
+	url = https://github.com/AeroTechLab/Simple-JSON
